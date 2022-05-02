@@ -7,9 +7,15 @@ Scenario('Single Test', async ({ I }) => {
     let productName = await I.grabTextFrom('//*[@id="__next"]/div/div/div[2]/div[2]/div[2]/div/div[3]/p[1]')
 
     if (productName === expectedProductName) {
-        I.executeScript('browserstack_executor: {"action": "setSessionStatus", "arguments": {"status":"passed","reason": "Product matched!"}}')
+        I.usePlaywrightTo('Mark Scenario', async ({ page }) => {
+            // use browser, page, context objects inside this function
+            await page.evaluate(_=>{},`browserstack_executor: {"action": "setSessionStatus", "arguments": {"status":"passed","reason": "Product Matched"}}`)
+        });
     }
     else {
-        I.executeScript('browserstack_executor: {"action": "setSessionStatus", "arguments": {"status":"failed","reason": "Product Did Not Match!"}}')
+        I.usePlaywrightTo('Mark Scenario', async ({ page }) => {
+            // use browser, page, context objects inside this function
+            await page.evaluate(_=>{},`browserstack_executor: {"action": "setSessionStatus", "arguments": {"status":"failed","reason": "Product Did Matched"}}`)
+        });
     }
 });

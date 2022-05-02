@@ -1,57 +1,82 @@
-const browserstack = require("browserstack-local");
 require('dotenv').config()
+const browserstack = require("browserstack-local");
 
 const BROWSERSTACK_USERNAME = process.env.BROWSERSTACK_USERNAME
 const BROWSERSTACK_ACCESS_KEY = process.env.BROWSERSTACK_ACCESS_KEY
+const cp = require('child_process');
+const clientPlaywrightVersion = cp.execSync('npx playwright --version').toString().trim().split(' ')[1];
+
+const CommonCaps = {
+    'name': 'Codecept test using Playwright',
+    'build': 'CodeceptJS on BrowserStack',
+    'browserstack.username': BROWSERSTACK_USERNAME,
+    'browserstack.accessKey': BROWSERSTACK_ACCESS_KEY,
+    'browserstack.local':'true',
+    'client.playwrightVersion': clientPlaywrightVersion
+}
+
+const CatalinaChrome = Object.assign({}, CommonCaps, {
+    'browser': 'chrome', // allowed browsers are `chrome`, `edge`, `playwright-chromium`, `playwright-firefox` and `playwright-webkit`
+    'os': 'osx',
+    'os_version': 'catalina',
+})
+
+const WindowsFirefox = Object.assign({}, CommonCaps, {
+    'browser': 'playwright-firefox', // allowed browsers are `chrome`, `edge`, `playwright-chromium`, `playwright-firefox` and `playwright-webkit`
+    'os': 'windows',
+    'os_version': '10',
+})
 
 exports.config = {
     tests: './*_test.js',
     output: './output',
     helpers: {
-        WebDriver: {
-            url: 'https://bstackdemo.com',
-            user: BROWSERSTACK_USERNAME,
-            key: BROWSERSTACK_ACCESS_KEY,
-            browser: 'chrome',
-            //Mentioned below are the capabilities based on JSON Wire Protocol
-            capabilities: {
-                "os": "Windows",
-                "os_version": "10",
-                "browser_version": "latest",
-                "browserstack.local": "true",
-                "project": "Codecept + WebdriverIO",
-                "build": "Local_Execution",
-                "name": "Local Test",
+        Playwright: {
+            show: true,
+            browser: 'chromium',
+            chromium: {
+                browserWSEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(CatalinaChrome))}`
             }
-            //For W3C-based scripts, use the following capabilties:
-            // capabilities: {
-            //  "bstack:options" : {
-            //    "os": "Windows",
-            //    "osVersion": "10",
-            //    "local": "true",
-            //    "projectName": "Codecept + WebdriverIO",
-            //    "buildName": "Local_Execution",
-            //    "sessionName": "Local Test",
-            //  },
-            //  "browserVersion": "latest",
-            // }
         }
     },
 
-    bootstrap: function () {
-        console.log("Connecting Local");
-        exports.bs_local = new browserstack.Local();
-        exports.bs_local.start({ 'key': BROWSERSTACK_ACCESS_KEY }, function (error) {
-            if (error) return error;
-            console.log('Connected. Now testing...');
-
-        });
+    multiple: {
+        bstack: {
+            browsers: [
+                {
+                    browser: 'chromium',
+                    chromium: {
+                        browserWSEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(CatalinaChrome))}`
+                    }
+                },
+                {
+                    browser: 'chromium',
+                    chromium: {
+                        browserWSEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(WindowsFirefox))}`
+                    }
+                }
+            ],
+        },
+    },
+    bootstrapAll: async function () {
+        return new Promise((res, rej) => {
+            console.log("Connecting Local");
+            exports.bs_local = new browserstack.Local();
+            exports.bs_local.start({ 'key': BROWSERSTACK_ACCESS_KEY }, function (error) {
+                if (error) rej(error);
+                console.log('Connected. Now testing...');
+                res()
+            });
+        })
     },
 
-    teardown: function () {
-        exports.bs_local.stop(() => {
-            console.log("Disconnected Local");
-        });
+    teardownAll: async function () {
+        return new Promise((res) => {
+            exports.bs_local.stop(() => {
+                console.log("Disconnected Local");
+                res()
+            });
+        })
     },
     include: {
         I: './steps_file.js'

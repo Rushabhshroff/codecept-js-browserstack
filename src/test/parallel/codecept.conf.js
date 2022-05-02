@@ -2,17 +2,39 @@ require('dotenv').config()
 
 const BROWSERSTACK_USERNAME = process.env.BROWSERSTACK_USERNAME
 const BROWSERSTACK_ACCESS_KEY = process.env.BROWSERSTACK_ACCESS_KEY
+const cp = require('child_process');
+const clientPlaywrightVersion = cp.execSync('npx playwright --version').toString().trim().split(' ')[1];
+
+const CommonCaps = {
+    'name': 'Codecept test using Playwright',
+    'build': 'CodeceptJS on BrowserStack',
+    'browserstack.username': BROWSERSTACK_USERNAME,
+    'browserstack.accessKey': BROWSERSTACK_ACCESS_KEY,
+    'client.playwrightVersion': clientPlaywrightVersion
+}
+
+const CatalinaChrome = Object.assign({},CommonCaps, {
+    'browser': 'chrome', // allowed browsers are `chrome`, `edge`, `playwright-chromium`, `playwright-firefox` and `playwright-webkit`
+    'os': 'osx',
+    'os_version': 'catalina',
+})
+
+const WindowsFirefox = Object.assign({},CommonCaps, {
+    'browser': 'playwright-firefox', // allowed browsers are `chrome`, `edge`, `playwright-chromium`, `playwright-firefox` and `playwright-webkit`
+    'os': 'windows',
+    'os_version': '10',
+})
 
 exports.config = {
     tests: './*_test.js',
     output: './output',
     helpers: {
-        WebDriver: {
-            url: 'https://bstackdemo.com',
-            user: BROWSERSTACK_USERNAME,
-            key: BROWSERSTACK_ACCESS_KEY,
-            browser: 'chrome',
-            desiredCapabilities: {}
+        Playwright: {
+            show: true,
+            browser: 'chromium',
+            chromium: {
+                browserWSEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(CatalinaChrome))}`
+            }
         }
     },
 
@@ -20,64 +42,17 @@ exports.config = {
         bstack: {
             browsers: [
                 {
-                    browser: "Safari",
-                    //Mentioned below are the capabilities based on JSON Wire Protocol
-                    desiredCapabilities: {
-                        "os": "OS X",
-                        "os_version": "Catalina",
-                        "browser_version": "latest",
-                        "project": "Codecept + WebdriverIO",
-                        "build": "Parallel_Execution",
-                        "name": "Parallel Test Safari",
-                        "browserstack.debug": "true",
-                        'browserstack.networkLogs': 'true',
-                    },
-                    //For W3C-based scripts, use the following capabilties:
-                    /*
-                    desiredCapabilities: {
-                     "bstack:options" : {
-                       "os": "OS X",
-                       "osVersion": "Catalina",
-                       "projectName": "Codecept + WebdriverIO",
-                       "buildName": "Parallel_Execution",
-                       "sessionName": "Parallel Test Safari",
-                       "debug" : "true",
-                       "networkLogs" : "true",
-                     },
-                     "browserVersion": "latest",
-                    },
-                    */
+                    browser: 'chromium',
+                    chromium: {
+                        browserWSEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(CatalinaChrome))}`
+                    }
                 },
-
                 {
-                    browser: "Firefox",
-                    //Mentioned below are the capabilities based on JSON Wire Protocol
-                    desiredCapabilities: {
-                        "os": "Windows",
-                        "os_version": "10",
-                        "browser_version": "latest",
-                        "project": "Codecept + WebdriverIO",
-                        "build": "Parallel_Execution",
-                        "name": "Parallel Test Firefox",
-                        "browserstack.debug": "true",
-                        'browserstack.networkLogs': 'true',
-                    },
-                    //For W3C-based scripts, use the following capabilties:
-                    /*
-                    desiredCapabilities: {
-                     "bstack:options" : {
-                       "os": "Windows",
-                       "osVersion": "10",
-                       "projectName": "Codecept + WebdriverIO",
-                       "buildName": "Parallel_Execution",
-                       "sessionName": "Parallel Test Firefox",
-                       "debug" : "true",
-                       "networkLogs" : "true",
-                     },
-                     "browserVersion": "latest",
-                    },
-                    */
-                },
+                    browser: 'chromium',
+                    chromium: {
+                        browserWSEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(WindowsFirefox))}`
+                    }
+                }
             ],
         },
     },
